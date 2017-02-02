@@ -118,13 +118,7 @@ class EntityManagerFactory
             $conn = DriverManager::getConnection([
                 'wrapperClass' => MasterSlaveConnection::class,
                 'driver'       => $connection['driver'],
-                'master'       => [
-                    'user'     => array_get($slaveConfig, 'write.user', ''),
-                    'password' => array_get($slaveConfig, 'write.password', ''),
-                    'host'     => array_get($slaveConfig, 'write.host', ''),
-                    'dbname'   => array_get($slaveConfig, 'write.dbname', ''),
-                    'port'   => array_get($slaveConfig, 'write.port', ''),
-                ],
+                'master'       => $slaveConfig['write'],
                 'slaves'       => $slaveConfig['read'],
             ]);
         }

@@ -31,6 +31,7 @@ class MasterSlaveConfigParser
             'host'     => array_get($config, 'write.host', $config['host']),
             'dbname'   => array_get($config, 'write.database', $config['database']),
             'port'     => array_get($config, 'write.port', $config['port']),
+            'charset'  => $config['charset'],
         ];
 
         foreach (array_get($config, 'read', []) as $slaveConfig) {
@@ -39,7 +40,8 @@ class MasterSlaveConfigParser
                 'password' => array_get($slaveConfig, 'password', $config['password']),
                 'host'     => array_get($slaveConfig, 'host', $config['host']),
                 'dbname'   => array_get($slaveConfig, 'database', $config['database']),
-                'port'     => array_get($config, 'write.port', $config['port']),
+                'port'     => array_get($slaveConfig, 'port', $config['port']),
+                'charset'  => $config['charset'],
             ];
 
             $masterSlave['read'][] = $config;
