@@ -3,12 +3,14 @@
 namespace LaravelDoctrine\ORM;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Common\Proxy\Autoloader;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadataFactory;
 use Faker\Factory as FakerFactory;
 use Faker\Generator as FakerGenerator;
 use Illuminate\Contracts\Container\Container;
+use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use LaravelDoctrine\ORM\Auth\DoctrineUserProvider;
@@ -33,6 +35,7 @@ use LaravelDoctrine\ORM\Console\SchemaUpdateCommand;
 use LaravelDoctrine\ORM\Console\SchemaValidateCommand;
 use LaravelDoctrine\ORM\Exceptions\ExtensionNotFound;
 use LaravelDoctrine\ORM\Extensions\ExtensionManager;
+use LaravelDoctrine\ORM\Notifications\DoctrineChannel;
 use LaravelDoctrine\ORM\Testing\Factory as EntityFactory;
 use LaravelDoctrine\ORM\Validation\PresenceVerifierProvider;
 
@@ -44,6 +47,7 @@ class DoctrineServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->extendAuthManager();
+        $this->extendNotificationChannel();
 
         if (!$this->isLumen()) {
             $this->publishes([
@@ -70,6 +74,7 @@ class DoctrineServiceProvider extends ServiceProvider
         $this->registerConsoleCommands();
         $this->registerCustomTypes();
         $this->registerEntityFactory();
+        $this->registerProxyAutoloader();
 
         if ($this->shouldRegisterDoctrinePresenceValidator()) {
             $this->registerPresenceVerifierProvider();
@@ -250,6 +255,20 @@ class DoctrineServiceProvider extends ServiceProvider
     }
 
     /**
+     * Extend the database channel
+     */
+    public function extendNotificationChannel()
+    {
+        if ($this->app->bound(ChannelManager::class)) {
+            $channel = $this->app['config']->get('doctrine.notifications.channel', 'database');
+
+            $this->app->make(ChannelManager::class)->extend($channel, function ($app) {
+                return new DoctrineChannel($app['registry']);
+            });
+        }
+    }
+
+    /**
      * Register the Entity factory instance in the container.
      *
      * @return void
@@ -266,6 +285,24 @@ class DoctrineServiceProvider extends ServiceProvider
                 $app->make('registry'),
                 database_path('factories')
             );
+        });
+    }
+
+    /**
+     * Register proxy autoloader
+     *
+     * @return void
+     */
+    public function registerProxyAutoloader()
+    {
+        $this->app->afterResolving(ManagerRegistry::class, function (ManagerRegistry $registry) {
+            /** @var EntityManagerInterface $manager */
+            foreach ($registry->getManagers() as $manager) {
+                Autoloader::register(
+                    $manager->getConfiguration()->getProxyDir(),
+                    $manager->getConfiguration()->getProxyNamespace()
+                );
+            }
         });
     }
 

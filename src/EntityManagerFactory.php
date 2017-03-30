@@ -4,6 +4,8 @@ namespace LaravelDoctrine\ORM;
 
 use Doctrine\DBAL\Connections\MasterSlaveConnection;
 use Doctrine\DBAL\DriverManager;
+use Doctrine\Common\Cache\ArrayCache;
+use Doctrine\Common\Cache\Cache;
 use Doctrine\ORM\Cache\DefaultCacheFactory;
 use Doctrine\ORM\Configuration;
 use Doctrine\ORM\EntityManager;
@@ -94,10 +96,12 @@ class EntityManagerFactory
      */
     public function create(array $settings = [])
     {
+        $defaultDriver = $this->config->get('doctrine.cache.default', 'array');
+
         $configuration = $this->setup->createConfiguration(
             array_get($settings, 'dev', false),
             array_get($settings, 'proxies.path'),
-            $this->cache->driver()
+            $this->cache->driver($defaultDriver)
         );
 
         $this->setMetadataDriver($settings, $configuration);
@@ -335,11 +339,31 @@ class EntityManagerFactory
      */
     protected function setCacheSettings(Configuration $configuration)
     {
-        if ($namespace = $this->config->get('doctrine.cache.namespace', null)) {
-            $this->cache->driver()->setNamespace($namespace);
-        }
+        $configuration->setQueryCacheImpl($this->applyNamedCacheConfiguration('query'));
+        $configuration->setResultCacheImpl($this->applyNamedCacheConfiguration('result'));
+        $configuration->setMetadataCacheImpl($this->applyNamedCacheConfiguration('metadata'));
 
         $this->setSecondLevelCaching($configuration);
+    }
+
+    /**
+     * @param  string $cacheName
+     * @return Cache
+     */
+    private function applyNamedCacheConfiguration($cacheName)
+    {
+        $defaultDriver    = $this->config->get('doctrine.cache.default', 'array');
+        $defaultNamespace = $this->config->get('doctrine.cache.namespace');
+
+        $driver = $this->config->get('doctrine.cache.' . $cacheName . '.driver', $defaultDriver);
+
+        $cache = $this->cache->driver($driver);
+
+        if ($namespace = $this->config->get('doctrine.cache.' . $cacheName . '.namespace', $defaultNamespace)) {
+            $cache->setNamespace($namespace);
+        }
+
+        return $cache;
     }
 
     /**

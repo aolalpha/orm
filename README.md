@@ -42,17 +42,18 @@ EntityManager::flush();
 
 [Read the full documentation](http://laraveldoctrine.org/docs/current/orm).
 
-## Installation
+## Versions
 
- Laravel  | Laravel Doctrine
-:---------|:----------
- 5.1.*    | 1.0.*
- 5.2.*    | 1.1.*
+Version | Supported Laravel Versions | Support
+:---------|:----------|:----------
+1.0.x |  5.1.x | Bugfix and security releases
+1.1.x | 5.2.x |  Bugfix and security releases
+1.2.x | 5.2.x, 5.3.x | New features
 
 Require this package  
 
-```php
-composer require "laravel-doctrine/orm:1.1.*"
+```bash
+composer require "laravel-doctrine/orm:1.2.*"
 ```
 
 After adding the package, add the ServiceProvider to the providers array in `config/app.php`
@@ -69,7 +70,7 @@ Optionally you can register the EntityManager facade:
 
 To publish the config use:
 
-```php
+```bash
 php artisan vendor:publish --tag="config"
 ```
 
